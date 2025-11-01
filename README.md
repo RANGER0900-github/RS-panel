@@ -7,31 +7,19 @@ A professional, production-ready VPS management panel for admins and users to cr
 ### Admin Panel
 - **Dashboard**: Professional admin interface with role-based access control (Admin, Support, Billing, User)
 - **VPS Management**: Full CRUD operations for VPS instances
-- **VPS Creation**: Comprehensive form with:
-  - CPU cores, RAM, storage configuration
-  - OS image selector (Ubuntu, Debian, custom images)
-  - Expiration settings (minutes, hours, days, months) with configurable actions
-  - User assignment
-  - Network type (public IPv4 / private-only)
-  - Start on create, auto-backups options
-  - Cloud-init / user-data support
+- **VPS Creation**: Comprehensive form with CPU, RAM, storage, OS images, expiration settings, and more
 - **User Management**: Create, edit, suspend users, manage roles and SSH keys
-- **Host Statistics**: Cluster-wide resource usage, per-host health, capacity planning
+- **Host Statistics**: Cluster-wide resource usage, per-host health monitoring
 - **Activity & Audit Logs**: Complete audit trail of all actions
 - **Image Management**: Upload, validate, and manage OS images
 - **Templates/Plans**: Reusable VM flavors with pricing
 
 ### User Panel
 - **Dashboard**: View all user VPS instances with status badges
-- **VPS Detail**: Comprehensive VPS information with:
-  - Live console (WebSocket-backed) or tmate for private-only instances
-  - Real-time usage graphs (CPU, RAM, Disk, Network)
-  - Start/Stop/Reboot/Rebuild/Resize/Reinstall actions
-  - SSH keys management
-  - Backups/snapshots
-  - Networking details and firewall rules
-  - Logs and notifications
-- **Expiration & Renewal**: Clear expiry information and renewal actions
+- **VPS Detail**: Comprehensive VPS information with live console, usage graphs, and management actions
+- **SSH Keys**: Manage SSH public keys
+- **Backups/Snapshots**: View and restore backups
+- **Notifications**: Real-time alerts and updates
 
 ## Tech Stack
 
@@ -39,11 +27,21 @@ A professional, production-ready VPS management panel for admins and users to cr
 - **Frontend**: React 18 + TypeScript + Tailwind CSS
 - **Database**: PostgreSQL 15
 - **Cache/Queue**: Redis 7
-- **Storage**: MinIO (S3-compatible) or local filesystem
-- **Virtualization**: KVM/QEMU via libvirt (for actual VPS provisioning)
+- **Storage**: MinIO (S3-compatible)
 - **Containerization**: Docker + Docker Compose
 
-## Installation on Ubuntu VPS
+---
+
+## Installation Methods
+
+This project supports two installation methods:
+
+1. **[Method 1: Installation on Ubuntu VPS](#method-1-installation-on-ubuntu-vps)** - Full installation on a dedicated Ubuntu server
+2. **[Method 2: CodeSandbox Docker Template](#method-2-codesandbox-docker-template)** - Quick setup using CodeSandbox
+
+---
+
+## Method 1: Installation on Ubuntu VPS
 
 ### Prerequisites
 
@@ -72,7 +70,8 @@ sudo apt-get install -y \
     apt-transport-https \
     ca-certificates \
     gnupg \
-    lsb-release
+    lsb-release \
+    openssl
 ```
 
 ### Step 2: Install Docker
@@ -91,7 +90,7 @@ echo \
 sudo apt-get update
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-# Add current user to docker group (optional, to run docker without sudo)
+# Add current user to docker group
 sudo usermod -aG docker $USER
 
 # Enable Docker to start on boot
@@ -103,20 +102,10 @@ docker --version
 docker compose version
 ```
 
-### Step 3: Install Docker Compose (if not installed via plugin)
+### Step 3: Clone the Repository
 
 ```bash
-# Docker Compose is included with Docker 20.10+
-# If you need standalone version:
-sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
-docker-compose --version
-```
-
-### Step 4: Clone the Repository
-
-```bash
-# Clone the MS VPS Panel repository
+# Clone or upload the project
 cd /opt
 sudo git clone https://github.com/your-org/ms-vps-panel.git
 cd ms-vps-panel
@@ -124,91 +113,29 @@ cd ms-vps-panel
 # Or if you have the files locally, upload them to /opt/ms-vps-panel
 ```
 
-### Step 5: Configure Environment Variables
-
-```bash
-# Copy example environment file
-cp .env.example .env
-
-# Edit the .env file with your settings
-sudo nano .env
-```
-
-**Important**: Change these values in `.env`:
-- `SECRET_KEY`: Generate a strong random secret key
-  ```bash
-  # Generate a secret key
-  openssl rand -hex 32
-  ```
-- `DATABASE_URL`: PostgreSQL connection string
-- `REDIS_URL`: Redis connection string
-- Other service configurations as needed
-
-### Step 6: Set Up libvirt/KVM (Required for VPS Provisioning)
-
-```bash
-# Install KVM and libvirt
-sudo apt-get install -y \
-    qemu-kvm \
-    libvirt-daemon-system \
-    libvirt-clients \
-    bridge-utils \
-    virt-manager \
-    virtinst \
-    libvirt-dev
-
-# Add your user to libvirt group (adjust username as needed)
-sudo usermod -aG libvirt $USER
-
-# Enable and start libvirt service
-sudo systemctl enable libvirtd
-sudo systemctl start libvirtd
-
-# Verify KVM is available
-sudo virt-host-validate qemu
-```
-
-**Note**: If running in a VPS, nested virtualization may not be available. In that case, you may need to use a different virtualization backend or run on bare metal.
-
-### Step 7: Install tmate (For Private-Only VPS Console Access)
-
-```bash
-# Install tmate
-sudo apt-get install -y tmate
-
-# Verify installation
-tmate -V
-```
-
-### Step 8: Set Up Firewall (Optional but Recommended)
-
-```bash
-# Install UFW if not already installed
-sudo apt-get install -y ufw
-
-# Allow SSH
-sudo ufw allow 22/tcp
-
-# Allow HTTP and HTTPS
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-
-# Allow Docker (if needed)
-sudo ufw allow 8000/tcp  # Backend API
-
-# Enable firewall
-sudo ufw enable
-
-# Check status
-sudo ufw status
-```
-
-### Step 9: Build and Start Services
+### Step 4: Generate Environment File
 
 ```bash
 # Navigate to project directory
 cd /opt/ms-vps-panel
 
+# Generate .env file with random secret key
+chmod +x generate-env.sh
+./generate-env.sh
+
+# Or manually generate .env
+cp .env.example .env
+
+# Generate a secret key and add to .env
+SECRET_KEY=$(openssl rand -hex 32)
+sed -i "s/SECRET_KEY=.*/SECRET_KEY=$SECRET_KEY/" .env
+```
+
+**Important**: Review the `.env` file and change any values as needed for production.
+
+### Step 5: Build and Start Services
+
+```bash
 # Build Docker images
 docker compose build
 
@@ -222,17 +149,13 @@ docker compose ps
 docker compose logs -f
 ```
 
-### Step 10: Initialize Database
+### Step 6: Initialize Database
 
 ```bash
 # Wait for services to be ready (about 30 seconds)
 sleep 30
 
-# The database tables will be created automatically on first run
-# You can verify by checking backend logs
-docker compose logs backend
-
-# Initialize database with sample data (admin user, test user, sample host, OS images)
+# Initialize database with sample data
 docker compose exec backend python init_db.py
 
 # This creates:
@@ -244,67 +167,193 @@ docker compose exec backend python init_db.py
 # ⚠️  SECURITY WARNING: Change default passwords immediately!
 ```
 
-**⚠️ Security Warning**: Change the admin password immediately after first login!
-
-### Step 11: Access the Panel
+### Step 7: Access the Panel
 
 - **Frontend**: http://your-server-ip
 - **Backend API**: http://your-server-ip:8000
 - **API Docs**: http://your-server-ip:8000/api/docs
 - **MinIO Console**: http://your-server-ip:9001 (default: minioadmin/minioadmin)
 
-### Step 12: Set Up as System Service (Optional)
+**Default Login**: `admin@example.com` / `admin123`
 
-Create a systemd service for auto-start:
-
-```bash
-sudo nano /etc/systemd/system/ms-vps-panel.service
-```
-
-Add the following content:
-
-```ini
-[Unit]
-Description=MS VPS Panel
-Requires=docker.service
-After=docker.service
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-WorkingDirectory=/opt/ms-vps-panel
-ExecStart=/usr/bin/docker compose up -d
-ExecStop=/usr/bin/docker compose down
-TimeoutStartSec=0
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Enable and start the service:
+### Step 8: Set Up Firewall (Optional but Recommended)
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable ms-vps-panel.service
-sudo systemctl start ms-vps-panel.service
+# Install UFW
+sudo apt-get install -y ufw
+
+# Allow SSH (IMPORTANT - do this first!)
+sudo ufw allow 22/tcp
+
+# Allow HTTP and HTTPS
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+
+# Allow Backend API (optional, only if needed externally)
+sudo ufw allow 8000/tcp
+
+# Enable firewall
+sudo ufw enable
+
+# Check status
+sudo ufw status
 ```
 
-## Updating the Panel
+### Step 9: Set Up libvirt/KVM (Optional - for VPS Provisioning)
+
+**Note**: This is only needed if you want actual VPS provisioning. The panel works without it for management purposes.
 
 ```bash
-cd /opt/ms-vps-panel
+# Install KVM and libvirt (on HOST, not in Docker)
+sudo apt-get install -y \
+    qemu-kvm \
+    libvirt-daemon-system \
+    libvirt-clients \
+    bridge-utils \
+    virt-manager \
+    virtinst \
+    libvirt-dev
 
-# Pull latest changes
-git pull
+# Add your user to libvirt group
+sudo usermod -aG libvirt $USER
 
-# Rebuild and restart
-docker compose down
-docker compose build
+# Enable and start libvirt service
+sudo systemctl enable libvirtd
+sudo systemctl start libvirtd
+
+# Verify KVM is available
+sudo virt-host-validate qemu
+```
+
+**Important**: libvirt won't work inside Docker containers. For actual VPS provisioning, you'll need to run libvirt on the host system and connect to it from the backend.
+
+### Step 10: Install tmate (Optional - for Private VPS Console Access)
+
+```bash
+# Install tmate
+sudo apt-get install -y tmate
+
+# Verify installation
+tmate -V
+```
+
+---
+
+## Method 2: CodeSandbox Docker Template
+
+This method is ideal for quick testing, development, or deploying to cloud platforms like CodeSandbox.
+
+### Prerequisites
+
+- CodeSandbox account or Docker-compatible environment
+- Git access (if cloning)
+
+### Step 1: Import Project to CodeSandbox
+
+1. Go to [CodeSandbox](https://codesandbox.io)
+2. Click "Import from GitHub" or "Create Sandbox"
+3. If importing from GitHub, paste your repository URL
+4. If creating new, upload the project files
+
+### Step 2: Configure Environment
+
+CodeSandbox will automatically detect the `docker-compose.yml` file. You may need to:
+
+1. Create a `.env` file in the root directory
+2. Use the provided `generate-env.sh` script:
+
+```bash
+# In CodeSandbox terminal
+chmod +x generate-env.sh
+./generate-env.sh
+```
+
+Or manually create `.env`:
+
+```bash
+# Generate secret key
+SECRET_KEY=$(openssl rand -hex 32)
+
+# Create .env file
+cat > .env << EOF
+SECRET_KEY=${SECRET_KEY}
+DEBUG=false
+DATABASE_URL=postgresql://vpspanel:vpspanel@postgres:5432/vpspanel
+REDIS_URL=redis://redis:6379/0
+USE_S3=false
+S3_ENDPOINT=http://minio:9000
+S3_ACCESS_KEY=minioadmin
+S3_SECRET_KEY=minioadmin
+S3_BUCKET=vps-panel
+S3_REGION=us-east-1
+LIBVIRT_URI=qemu:///system
+CELERY_BROKER_URL=redis://redis:6379/1
+CELERY_RESULT_BACKEND=redis://redis:6379/2
+TMATE_HOST=localhost
+TMATE_PORT=22
+TMATE_BIN_PATH=/usr/bin/tmate
+EOF
+```
+
+### Step 3: Start Services in CodeSandbox
+
+CodeSandbox Docker template supports:
+
+1. **Automatic Detection**: CodeSandbox will detect `docker-compose.yml`
+2. **Manual Start**: If needed, run in terminal:
+
+```bash
+# Build and start services
 docker compose up -d
 
-# Run database migrations if needed
-docker compose exec backend alembic upgrade head
+# View logs
+docker compose logs -f
 ```
+
+### Step 4: Access the Panel
+
+CodeSandbox provides preview URLs:
+- **Frontend**: Check CodeSandbox preview (usually `https://your-sandbox-id.csb.app`)
+- **Backend API**: Check exposed ports (usually `https://your-sandbox-id-8000.csb.app`)
+- **API Docs**: `https://your-sandbox-id-8000.csb.app/api/docs`
+
+### Step 5: Initialize Database
+
+```bash
+# Wait for services to start
+sleep 30
+
+# Initialize database
+docker compose exec backend python init_db.py
+```
+
+### CodeSandbox-Specific Notes
+
+1. **Port Exposing**: CodeSandbox automatically exposes ports 80 and 8000
+2. **Environment Variables**: Can be set in CodeSandbox settings
+3. **Persistence**: Data persists across sessions
+4. **Limitations**: 
+   - libvirt/KVM won't work (container limitations)
+   - Some system-level operations may be restricted
+   - Best for development/testing
+
+### CodeSandbox Quick Start Template
+
+For a ready-to-use CodeSandbox template, add this to your repository:
+
+**`.codesandbox/template.json`**:
+```json
+{
+  "title": "MS VPS Panel",
+  "description": "Professional VPS Management Panel",
+  "template": "docker",
+  "containerPort": 80,
+  "ports": [80, 8000],
+  "postInstallCommand": "./generate-env.sh && docker compose up -d"
+}
+```
+
+---
 
 ## Common Commands
 
@@ -332,6 +381,15 @@ docker compose down
 docker compose restart
 ```
 
+### Rebuild After Changes
+
+```bash
+# Rebuild and restart
+docker compose down
+docker compose build
+docker compose up -d
+```
+
 ### Backup Database
 
 ```bash
@@ -342,37 +400,31 @@ docker compose exec postgres pg_dump -U vpspanel vpspanel > backup_$(date +%Y%m%
 docker compose exec -T postgres psql -U vpspanel vpspanel < backup_file.sql
 ```
 
-### Clean Up
-
-```bash
-# Stop and remove containers, networks
-docker compose down
-
-# Remove volumes (⚠️ This will delete all data)
-docker compose down -v
-
-# Remove images
-docker compose down --rmi all
-```
+---
 
 ## Troubleshooting
 
-### Port Already in Use
+### Build Errors
 
-If port 80, 8000, or 5432 is already in use:
+**Error**: `npm ci` fails - missing package-lock.json
+- **Solution**: Already fixed in Dockerfile (uses `npm install`)
 
+**Error**: `libvirt-python` build fails
+- **Solution**: Already fixed - libvirt-python is optional and commented out
+
+**Error**: Port already in use
 ```bash
 # Find process using port
 sudo lsof -i :80
 sudo lsof -i :8000
 
-# Kill the process or change ports in docker-compose.yml
+# Kill process or change ports in docker-compose.yml
 ```
 
 ### Database Connection Issues
 
 ```bash
-# Check if PostgreSQL is running
+# Check PostgreSQL status
 docker compose ps postgres
 
 # Check PostgreSQL logs
@@ -399,73 +451,59 @@ docker compose up -d frontend
 # Fix Docker socket permissions
 sudo chmod 666 /var/run/docker.sock
 
-# Or add user to docker group (requires re-login)
+# Add user to docker group (requires re-login)
 sudo usermod -aG docker $USER
+newgrp docker
 ```
 
-### libvirt Connection Errors
+### Services Not Starting
 
 ```bash
-# Check libvirt status
-sudo systemctl status libvirtd
+# Check all services status
+docker compose ps
 
-# Restart libvirt
-sudo systemctl restart libvirtd
+# View error logs
+docker compose logs
 
-# Verify KVM support
-sudo virt-host-validate qemu
+# Rebuild from scratch
+docker compose down -v
+docker compose build --no-cache
+docker compose up -d
 ```
+
+---
+
+## Environment Variables
+
+The `.env` file contains all configuration. Generate it using:
+
+```bash
+./generate-env.sh
+```
+
+**Key Variables**:
+- `SECRET_KEY`: **REQUIRED** - JWT token secret (generate with `openssl rand -hex 32`)
+- `DATABASE_URL`: PostgreSQL connection string
+- `REDIS_URL`: Redis connection string
+- `DEBUG`: Set to `false` in production
+- `USE_S3`: Set to `true` for AWS S3, `false` for local MinIO
+
+See `.env.example` for all available options.
+
+---
 
 ## Security Best Practices
 
-1. **Change Default Credentials**: Immediately change all default passwords
-2. **Use Strong Secret Key**: Generate a strong `SECRET_KEY` in `.env`
+1. **Change Default Passwords**: Immediately change admin password after first login
+2. **Use Strong Secret Key**: Generate a new `SECRET_KEY` for production
 3. **Firewall**: Configure UFW or iptables to restrict access
-4. **SSL/TLS**: Set up reverse proxy (nginx/Traefik) with Let's Encrypt SSL certificates
+4. **SSL/TLS**: Set up reverse proxy (nginx/Traefik) with Let's Encrypt SSL
 5. **Regular Updates**: Keep system and Docker images updated
 6. **Backup**: Regular database and volume backups
 7. **Monitor**: Set up monitoring and logging
 8. **Access Control**: Use VPN or restrict admin panel access
 
-## Production Deployment
-
-For production deployment:
-
-1. Set up reverse proxy (nginx) with SSL
-2. Use environment-specific `.env` files
-3. Set up automated backups
-4. Configure monitoring (Prometheus/Grafana)
-5. Use secrets management (Vault, AWS Secrets Manager)
-6. Enable 2FA for all admin accounts
-7. Configure rate limiting
-8. Set up log aggregation
-9. Use production PostgreSQL with proper backup strategy
-10. Consider Kubernetes for orchestration (see `k8s/` directory)
-
-## Architecture
-
-```
-┌─────────────┐
-│   Nginx     │ (Reverse Proxy + SSL)
-└──────┬──────┘
-       │
-┌──────▼──────────┐
-│   Frontend     │ (React + Vite)
-│   (Port 80)    │
-└──────┬─────────┘
-       │
-┌──────▼──────────┐
-│   Backend API   │ (FastAPI)
-│   (Port 8000)   │
-└──────┬─────────┘
-       │
-   ┌───┴───┬─────────┬──────────┐
-   │       │         │          │
-┌──▼──┐ ┌──▼──┐  ┌───▼───┐  ┌───▼────┐
-│PostgreSQL│ │Redis │ │ MinIO │ │libvirt│
-│ (5432)   │ │(6379)│ │ (9000)│ │ KVM   │
-└─────────┘ └──────┘ └───────┘ └───────┘
-```
+---
 
 ## API Documentation
 
@@ -474,6 +512,8 @@ Once the backend is running, access the interactive API documentation:
 - **Swagger UI**: http://your-server-ip:8000/api/docs
 - **ReDoc**: http://your-server-ip:8000/api/redoc
 - **OpenAPI JSON**: http://your-server-ip:8000/api/openapi.json
+
+---
 
 ## Development
 
@@ -505,13 +545,16 @@ npm install
 npm run dev
 ```
 
+---
+
 ## Support
 
 For issues, questions, or contributions:
-
 - **Issues**: GitHub Issues
-- **Documentation**: See `/docs` directory
+- **Documentation**: See project docs
 - **API Docs**: http://your-server-ip:8000/api/docs
+
+---
 
 ## License
 
@@ -520,4 +563,3 @@ For issues, questions, or contributions:
 ## Credits
 
 Inspired by Pterodactyl and other professional VPS management panels.
-

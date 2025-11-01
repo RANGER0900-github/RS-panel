@@ -35,6 +35,10 @@ class RegisterRequest(BaseModel):
     full_name: Optional[str] = None
 
 
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
@@ -141,11 +145,11 @@ async def register(
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(
-    refresh_token: str,
+    request: RefreshTokenRequest,
     db: Session = Depends(get_db)
 ):
     """Refresh access token"""
-    payload = decode_token(refresh_token)
+    payload = decode_token(request.refresh_token)
     
     if payload is None or payload.get("type") != "refresh":
         raise HTTPException(

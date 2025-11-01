@@ -2,18 +2,20 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies (without libvirt - it won't work in Docker)
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     libpq-dev \
-    libvirt-dev \
     pkg-config \
     curl \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
 COPY requirements.txt .
+
+# Install Python dependencies (libvirt-python is optional and commented out)
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application

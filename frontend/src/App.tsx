@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 import Layout from './components/Layout'
 import LoginPage from './pages/LoginPage'
@@ -37,7 +37,14 @@ function App() {
         <Route path="vps/:id" element={<VPSDetailPage />} />
         <Route path="profile" element={<ProfilePage />} />
         
-        <Route path="admin" element={<AdminRoute><></></AdminRoute>}>
+        <Route
+          path="admin"
+          element={
+            <AdminRoute>
+              <Outlet />
+            </AdminRoute>
+          }
+        >
           <Route path="dashboard" element={<AdminDashboardPage />} />
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="hosts" element={<AdminHostsPage />} />
