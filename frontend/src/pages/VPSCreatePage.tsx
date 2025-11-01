@@ -4,6 +4,7 @@ import { useQuery, useMutation } from 'react-query'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 import { ArrowLeft, Server, Cpu, HardDrive, Zap, Network, Users, FileText, Save } from 'lucide-react'
+import type { AxiosResponse } from 'axios'
 
 export default function VPSCreatePage() {
   const navigate = useNavigate()
@@ -20,8 +21,8 @@ export default function VPSCreatePage() {
     cloud_init_data: '',
   })
 
-  const { data: images, isLoading: imagesLoading } = useQuery('images', () => api.get('/images').then(res => res.data))
-  const { data: users, isLoading: usersLoading } = useQuery('users', () => api.get('/users').then(res => res.data))
+  const { data: images, isLoading: imagesLoading } = useQuery('images', () => api.get('/images').then((res: AxiosResponse) => res.data))
+  const { data: users, isLoading: usersLoading } = useQuery('users', () => api.get('/users').then((res: AxiosResponse) => res.data))
 
   const createMutation = useMutation((data: any) => api.post('/vps', data), {
     onSuccess: () => {

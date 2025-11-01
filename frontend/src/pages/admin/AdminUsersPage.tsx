@@ -1,10 +1,11 @@
 import { useQuery } from 'react-query'
-import api from '../api/client'
+import api from '../../api/client'
 import { Users, Mail, User as UserIcon, Shield, Calendar } from 'lucide-react'
+import type { AxiosResponse } from 'axios'
 
 export default function AdminUsersPage() {
   const { data: users, isLoading } = useQuery('admin-users', () =>
-    api.get('/users?limit=1000').then(res => res.data)
+    api.get('/users?limit=1000').then((res: AxiosResponse) => res.data)
   )
 
   if (isLoading) {

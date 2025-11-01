@@ -3,13 +3,14 @@ import { useQuery, useMutation, useQueryClient } from 'react-query'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 import { Play, Square, RotateCw, ArrowLeft, Cpu, HardDrive, Zap, Network, Monitor } from 'lucide-react'
+import type { AxiosResponse } from 'axios'
 
 export default function VPSDetailPage() {
   const { id } = useParams()
   const queryClient = useQueryClient()
 
   const { data: vps, isLoading } = useQuery(['vps', id], () =>
-    api.get(`/vps/${id}`).then(res => res.data)
+    api.get(`/vps/${id}`).then((res: AxiosResponse) => res.data)
   )
 
   const startMutation = useMutation(() => api.post(`/vps/${id}/start`), {

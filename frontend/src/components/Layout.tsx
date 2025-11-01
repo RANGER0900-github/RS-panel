@@ -1,6 +1,6 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
-import { LogOut, Server, Users, Settings, Home, Zap } from 'lucide-react'
+import { LogOut, Server, Home, Zap } from 'lucide-react'
 
 export default function Layout() {
   const { user, logout } = useAuthStore()

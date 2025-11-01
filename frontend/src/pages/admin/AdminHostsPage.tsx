@@ -1,10 +1,11 @@
 import { useQuery } from 'react-query'
-import api from '../api/client'
-import { Server, Activity, Cpu, HardDrive, Zap, Network } from 'lucide-react'
+import api from '../../api/client'
+import { Server, Cpu, HardDrive, Zap } from 'lucide-react'
+import type { AxiosResponse } from 'axios'
 
 export default function AdminHostsPage() {
   const { data: hosts, isLoading } = useQuery('hosts', () =>
-    api.get('/hosts').then(res => res.data)
+    api.get('/hosts').then((res: AxiosResponse) => res.data)
   )
 
   if (isLoading) {

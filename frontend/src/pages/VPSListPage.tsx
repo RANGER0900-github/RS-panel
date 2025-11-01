@@ -3,11 +3,12 @@ import { Link } from 'react-router-dom'
 import api from '../api/client'
 import { Plus, Server, Cpu, HardDrive, Zap, ArrowRight } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
+import type { AxiosResponse } from 'axios'
 
 export default function VPSListPage() {
   const { user } = useAuthStore()
   const isAdmin = user?.role === 'admin'
-  const { data: vpses, isLoading } = useQuery('vps', () => api.get('/vps').then(res => res.data))
+  const { data: vpses, isLoading } = useQuery('vps', () => api.get('/vps').then((res: AxiosResponse) => res.data))
 
   if (isLoading) {
     return (

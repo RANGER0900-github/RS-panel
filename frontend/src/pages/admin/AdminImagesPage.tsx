@@ -1,10 +1,11 @@
 import { useQuery } from 'react-query'
-import api from '../api/client'
-import { Image, Package, HardDrive, Shield, Calendar } from 'lucide-react'
+import api from '../../api/client'
+import { Image, Package, HardDrive, Shield } from 'lucide-react'
+import type { AxiosResponse } from 'axios'
 
 export default function AdminImagesPage() {
   const { data: images, isLoading } = useQuery('admin-images', () =>
-    api.get('/images?limit=1000').then(res => res.data)
+    api.get('/images?limit=1000').then((res: AxiosResponse) => res.data)
   )
 
   if (isLoading) {

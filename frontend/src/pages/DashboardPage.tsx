@@ -2,10 +2,11 @@ import { useQuery } from 'react-query'
 import { Link } from 'react-router-dom'
 import api from '../api/client'
 import { Server, Activity, AlertCircle, TrendingUp, Zap, ArrowRight } from 'lucide-react'
+import type { AxiosResponse } from 'axios'
 
 export default function DashboardPage() {
-  const { data: vpses, isLoading } = useQuery('vps', () => api.get('/vps').then(res => res.data))
-  const { data: user } = useQuery('user', () => api.get('/auth/me').then(res => res.data))
+  const { data: vpses, isLoading } = useQuery('vps', () => api.get('/vps').then((res: AxiosResponse) => res.data))
+  const { data: user } = useQuery('user', () => api.get('/auth/me').then((res: AxiosResponse) => res.data))
 
   const running = vpses?.filter((v: any) => v.status === 'running').length || 0
   const stopped = vpses?.filter((v: any) => v.status === 'stopped').length || 0

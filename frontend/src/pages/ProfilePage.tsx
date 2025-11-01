@@ -1,9 +1,10 @@
 import { useQuery } from 'react-query'
 import api from '../api/client'
-import { User, Mail, Shield, Calendar, CheckCircle, XCircle } from 'lucide-react'
+import { User, Mail, Shield, CheckCircle, XCircle } from 'lucide-react'
+import type { AxiosResponse } from 'axios'
 
 export default function ProfilePage() {
-  const { data: user, isLoading } = useQuery('user', () => api.get('/auth/me').then(res => res.data))
+  const { data: user, isLoading } = useQuery('user', () => api.get('/auth/me').then((res: AxiosResponse) => res.data))
 
   if (isLoading) {
     return (
