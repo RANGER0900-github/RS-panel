@@ -2,14 +2,14 @@ import { useQuery } from 'react-query'
 import { Link } from 'react-router-dom'
 import api from '../api/client'
 import { Server, Activity, AlertCircle, TrendingUp, Zap, ArrowRight } from 'lucide-react'
-import type { AxiosResponse } from 'axios'
+import type { VPS, User } from '../types'
 
 export default function DashboardPage() {
-  const { data: vpses, isLoading } = useQuery('vps', () => api.get('/vps').then((res: AxiosResponse) => res.data))
-  const { data: user } = useQuery('user', () => api.get('/auth/me').then((res: AxiosResponse) => res.data))
+  const { data: vpses, isLoading } = useQuery<VPS[]>('vps', () => api.get('/vps').then((res) => res.data))
+  const { data: user } = useQuery<User>('user', () => api.get('/auth/me').then((res) => res.data))
 
-  const running = vpses?.filter((v: any) => v.status === 'running').length || 0
-  const stopped = vpses?.filter((v: any) => v.status === 'stopped').length || 0
+  const running = vpses?.filter((v) => v.status === 'running').length || 0
+  const stopped = vpses?.filter((v) => v.status === 'stopped').length || 0
   const total = vpses?.length || 0
 
   if (isLoading) {
@@ -107,7 +107,7 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
-                {vpses.slice(0, 5).map((vps: any, index: number) => (
+                {vpses.slice(0, 5).map((vps, index: number) => (
                   <tr 
                     key={vps.id} 
                     className="hover:bg-slate-50 transition-colors cursor-pointer"

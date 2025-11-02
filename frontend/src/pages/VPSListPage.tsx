@@ -4,11 +4,12 @@ import api from '../api/client'
 import { Plus, Server, Cpu, HardDrive, Zap, ArrowRight } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import type { AxiosResponse } from 'axios'
+import type { VPS } from '../types'
 
 export default function VPSListPage() {
   const { user } = useAuthStore()
   const isAdmin = user?.role === 'admin'
-  const { data: vpses, isLoading } = useQuery('vps', () => api.get('/vps').then((res: AxiosResponse) => res.data))
+  const { data: vpses, isLoading } = useQuery<VPS[]>('vps', () => api.get('/vps').then((res: AxiosResponse<VPS[]>) => res.data))
 
   if (isLoading) {
     return (
@@ -40,7 +41,7 @@ export default function VPSListPage() {
       {/* VPS Grid */}
       {vpses && vpses.length > 0 ? (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {vpses.map((vps: any, index: number) => (
+          {vpses.map((vps, index: number) => (
             <Link
               key={vps.id}
               to={`/vps/${vps.id}`}
@@ -57,7 +58,9 @@ export default function VPSListPage() {
                     <h3 className="text-lg font-bold text-slate-900 group-hover:text-primary-600 transition-colors">
                       {vps.name}
                     </h3>
-                    <p className="text-xs text-slate-500 font-mono">{vps.uuid?.substring(0, 8)}...</p>
+                    {vps.uuid && (
+                      <p className="text-xs text-slate-500 font-mono">{vps.uuid.substring(0, 8)}...</p>
+                    )}
                   </div>
                 </div>
                 <div className={`w-3 h-3 rounded-full ${

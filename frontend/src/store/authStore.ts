@@ -1,14 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-
-interface User {
-  id: number
-  email: string
-  username: string
-  full_name?: string
-  role: string
-  is_2fa_enabled: boolean
-}
+import type { User } from '../types'
 
 interface AuthState {
   token: string | null

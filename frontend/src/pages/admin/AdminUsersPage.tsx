@@ -1,11 +1,11 @@
 import { useQuery } from 'react-query'
 import api from '../../api/client'
 import { Users, Mail, User as UserIcon, Shield, Calendar } from 'lucide-react'
-import type { AxiosResponse } from 'axios'
+import type { User } from '../../types'
 
 export default function AdminUsersPage() {
-  const { data: users, isLoading } = useQuery('admin-users', () =>
-    api.get('/users?limit=1000').then((res: AxiosResponse) => res.data)
+  const { data: users, isLoading } = useQuery<User[]>('admin-users', () =>
+    api.get('/users?limit=1000').then((res) => res.data)
   )
 
   if (isLoading) {
@@ -52,7 +52,7 @@ export default function AdminUsersPage() {
             </thead>
             <tbody className="bg-white divide-y divide-slate-200">
               {users && users.length > 0 ? (
-                users.map((user: any, index: number) => (
+                users.map((user, index: number) => (
                   <tr 
                     key={user.id} 
                     className="hover:bg-slate-50 transition-colors cursor-pointer"
@@ -84,19 +84,19 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full ${
-                        user.is_active 
+                        user.is_active !== false
                           ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
                           : 'bg-red-100 text-red-800 border border-red-200'
                       }`}>
-                        {user.is_active ? 'Active' : 'Inactive'}
+                        {user.is_active !== false ? 'Active' : 'Inactive'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                      {new Date(user.created_at).toLocaleDateString('en-US', { 
+                      {user.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { 
                         year: 'numeric', 
                         month: 'short', 
                         day: 'numeric' 
-                      })}
+                      }) : 'N/A'}
                     </td>
                   </tr>
                 ))

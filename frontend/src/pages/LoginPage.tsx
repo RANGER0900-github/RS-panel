@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/authStore'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 import { Zap, Mail, Lock, Shield } from 'lucide-react'
+import type { AxiosErrorResponse } from '../types'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -18,7 +19,7 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      const response = await api.post('/auth/login', {
+      const response = await api.post<{ access_token: string; refresh_token: string }>('/auth/login', {
         email,
         password,
         totp_code: totpCode || undefined,
@@ -34,8 +35,9 @@ export default function LoginPage() {
       setAuth(access_token, refresh_token, userResponse.data)
       toast.success('Welcome back!', { icon: '🎉' })
       navigate('/dashboard')
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Login failed. Please check your credentials.')
+    } catch (error) {
+      const axiosError = error as AxiosErrorResponse
+      toast.error(axiosError.response?.data?.detail || 'Login failed. Please check your credentials.')
     } finally {
       setIsLoading(false)
     }

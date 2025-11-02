@@ -1,11 +1,11 @@
 import { useQuery } from 'react-query'
 import api from '../../api/client'
 import { Server, Cpu, HardDrive, Zap } from 'lucide-react'
-import type { AxiosResponse } from 'axios'
+import type { Host } from '../../types'
 
 export default function AdminHostsPage() {
-  const { data: hosts, isLoading } = useQuery('hosts', () =>
-    api.get('/hosts').then((res: AxiosResponse) => res.data)
+  const { data: hosts, isLoading } = useQuery<Host[]>('hosts', () =>
+    api.get('/hosts').then((res) => res.data)
   )
 
   if (isLoading) {
@@ -27,7 +27,7 @@ export default function AdminHostsPage() {
       {/* Hosts Grid */}
       {hosts && hosts.length > 0 ? (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {hosts.map((host: any, index: number) => (
+          {hosts.map((host, index: number) => (
             <div 
               key={host.id} 
               className="card hover-lift animate-fade-in-up"
@@ -79,13 +79,13 @@ export default function AdminHostsPage() {
                       <span className="text-xs font-medium text-slate-700">CPU</span>
                     </div>
                     <span className="text-sm font-bold text-primary-700">
-                      {host.used_cpu_cores} / {host.total_cpu_cores}
+                      {host.used_cpu_cores ?? 0} / {host.total_cpu_cores ?? 0}
                     </span>
                   </div>
                   <div className="mt-2 w-full bg-slate-200 rounded-full h-2">
                     <div
                       className="bg-gradient-to-r from-primary-500 to-primary-600 h-2 rounded-full"
-                      style={{ width: `${(host.used_cpu_cores / host.total_cpu_cores) * 100}%` }}
+                      style={{ width: `${((host.used_cpu_cores ?? 0) / (host.total_cpu_cores ?? 1)) * 100}%` }}
                     />
                   </div>
                 </div>
@@ -97,13 +97,13 @@ export default function AdminHostsPage() {
                       <span className="text-xs font-medium text-slate-700">RAM</span>
                     </div>
                     <span className="text-sm font-bold text-purple-700">
-                      {host.used_ram_gb.toFixed(1)} / {host.total_ram_gb} GB
+                      {(host.used_ram_gb ?? 0).toFixed(1)} / {host.total_ram_gb ?? 0} GB
                     </span>
                   </div>
                   <div className="mt-2 w-full bg-slate-200 rounded-full h-2">
                     <div
                       className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full"
-                      style={{ width: `${(host.used_ram_gb / host.total_ram_gb) * 100}%` }}
+                      style={{ width: `${((host.used_ram_gb ?? 0) / (host.total_ram_gb ?? 1)) * 100}%` }}
                     />
                   </div>
                 </div>
@@ -115,13 +115,13 @@ export default function AdminHostsPage() {
                       <span className="text-xs font-medium text-slate-700">Storage</span>
                     </div>
                     <span className="text-sm font-bold text-emerald-700">
-                      {host.used_storage_gb.toFixed(1)} / {host.total_storage_gb} GB
+                      {(host.used_storage_gb ?? 0).toFixed(1)} / {host.total_storage_gb ?? 0} GB
                     </span>
                   </div>
                   <div className="mt-2 w-full bg-slate-200 rounded-full h-2">
                     <div
                       className="bg-gradient-to-r from-emerald-500 to-emerald-600 h-2 rounded-full"
-                      style={{ width: `${(host.used_storage_gb / host.total_storage_gb) * 100}%` }}
+                      style={{ width: `${((host.used_storage_gb ?? 0) / (host.total_storage_gb ?? 1)) * 100}%` }}
                     />
                   </div>
                 </div>

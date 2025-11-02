@@ -1,14 +1,14 @@
 import { useQuery } from 'react-query'
 import api from '../../api/client'
 import { Users, Server, Activity, TrendingUp, Cpu, HardDrive, Zap } from 'lucide-react'
-import type { AxiosResponse } from 'axios'
+import type { DashboardStats, HostStats } from '../../types'
 
 export default function AdminDashboardPage() {
-  const { data: stats, isLoading: statsLoading } = useQuery('admin-dashboard', () =>
-    api.get('/admin/dashboard').then((res: AxiosResponse) => res.data)
+  const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>('admin-dashboard', () =>
+    api.get('/admin/dashboard').then((res) => res.data)
   )
-  const { data: hostStats, isLoading: hostStatsLoading } = useQuery('host-stats', () =>
-    api.get('/hosts/stats').then((res: AxiosResponse) => res.data)
+  const { data: hostStats, isLoading: hostStatsLoading } = useQuery<HostStats>('host-stats', () =>
+    api.get('/hosts/stats').then((res) => res.data)
   )
 
   if (statsLoading || hostStatsLoading) {

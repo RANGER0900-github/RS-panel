@@ -5,6 +5,7 @@ import api from '../api/client'
 import toast from 'react-hot-toast'
 import { ArrowLeft, Server, Cpu, HardDrive, Zap, Network, Users, FileText, Save } from 'lucide-react'
 import type { AxiosResponse } from 'axios'
+import type { Image, User, VPSCreateData, AxiosErrorResponse } from '../types'
 
 export default function VPSCreatePage() {
   const navigate = useNavigate()
@@ -14,33 +15,38 @@ export default function VPSCreatePage() {
     ram_gb: 1,
     storage_gb: 10,
     os_image_id: '',
-    network_type: 'public_ipv4',
+    network_type: 'public_ipv4' as 'public_ipv4' | 'private_only',
     owner_id: '',
     start_on_create: false,
     auto_backups: false,
     cloud_init_data: '',
   })
 
-  const { data: images, isLoading: imagesLoading } = useQuery('images', () => api.get('/images').then((res: AxiosResponse) => res.data))
-  const { data: users, isLoading: usersLoading } = useQuery('users', () => api.get('/users').then((res: AxiosResponse) => res.data))
+  const { data: images, isLoading: imagesLoading } = useQuery<Image[]>('images', () => api.get('/images').then((res: AxiosResponse<Image[]>) => res.data))
+  const { data: users, isLoading: usersLoading } = useQuery<User[]>('users', () => api.get('/users').then((res: AxiosResponse<User[]>) => res.data))
 
-  const createMutation = useMutation((data: any) => api.post('/vps', data), {
+  const createMutation = useMutation((data: VPSCreateData) => api.post('/vps', data), {
     onSuccess: () => {
       toast.success('VPS created successfully!', { icon: '✅' })
       navigate('/vps')
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to create VPS')
+    onError: (error: unknown) => {
+      const axiosError = error as AxiosErrorResponse
+      toast.error(axiosError.response?.data?.detail || 'Failed to create VPS')
     },
   })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    createMutation.mutate({
-      ...formData,
-      os_image_id: parseInt(formData.os_image_id as any),
-      owner_id: parseInt(formData.owner_id as any),
-    })
+    const osImageId = formData.os_image_id ? parseInt(formData.os_image_id, 10) : undefined
+    const ownerId = formData.owner_id ? parseInt(formData.owner_id, 10) : undefined
+    if (osImageId && ownerId) {
+      createMutation.mutate({
+        ...formData,
+        os_image_id: osImageId,
+        owner_id: ownerId,
+      })
+    }
   }
 
   return (
@@ -149,7 +155,7 @@ export default function VPSCreatePage() {
               disabled={imagesLoading}
             >
               <option value="">Select OS Image</option>
-              {images?.map((img: any) => (
+              {images?.map((img) => (
                 <option key={img.id} value={img.id}>
                   {img.name} ({img.os_family})
                 </option>
@@ -188,7 +194,7 @@ export default function VPSCreatePage() {
             disabled={usersLoading}
           >
             <option value="">Select User</option>
-            {users?.map((user: any) => (
+            {users?.map((user) => (
               <option key={user.id} value={user.id}>
                 {user.email} ({user.username})
               </option>

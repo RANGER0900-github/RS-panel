@@ -1,11 +1,11 @@
 import { useQuery } from 'react-query'
 import api from '../../api/client'
-import { Image, Package, HardDrive, Shield } from 'lucide-react'
-import type { AxiosResponse } from 'axios'
+import { Image as ImageIcon, Package, HardDrive, Shield } from 'lucide-react'
+import type { Image } from '../../types'
 
 export default function AdminImagesPage() {
-  const { data: images, isLoading } = useQuery('admin-images', () =>
-    api.get('/images?limit=1000').then((res: AxiosResponse) => res.data)
+  const { data: images, isLoading } = useQuery<Image[]>('admin-images', () =>
+    api.get('/images?limit=1000').then((res) => res.data)
   )
 
   if (isLoading) {
@@ -50,7 +50,7 @@ export default function AdminImagesPage() {
             </thead>
             <tbody className="bg-white divide-y divide-slate-200">
               {images && images.length > 0 ? (
-                images.map((image: any, index: number) => (
+                images.map((image, index: number) => (
                   <tr 
                     key={image.id} 
                     className="hover:bg-slate-50 transition-colors cursor-pointer"
@@ -62,7 +62,7 @@ export default function AdminImagesPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-lg flex items-center justify-center mr-3 shadow-md">
-                          <Image className="w-5 h-5 text-white" />
+                          <ImageIcon className="w-5 h-5 text-white" />
                         </div>
                         <span className="text-sm font-semibold text-slate-900">{image.name}</span>
                       </div>
@@ -97,7 +97,7 @@ export default function AdminImagesPage() {
               ) : (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center">
-                    <Image className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                    <ImageIcon className="w-12 h-12 text-slate-400 mx-auto mb-4" />
                     <p className="text-slate-600">No OS images found</p>
                   </td>
                 </tr>

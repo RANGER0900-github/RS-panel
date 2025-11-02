@@ -1,10 +1,10 @@
 import { useQuery } from 'react-query'
 import api from '../api/client'
-import { User, Mail, Shield, CheckCircle, XCircle } from 'lucide-react'
-import type { AxiosResponse } from 'axios'
+import { User as UserIcon, Mail, Shield, CheckCircle, XCircle } from 'lucide-react'
+import type { User } from '../types'
 
 export default function ProfilePage() {
-  const { data: user, isLoading } = useQuery('user', () => api.get('/auth/me').then((res: AxiosResponse) => res.data))
+  const { data: user, isLoading } = useQuery<User>('user', () => api.get('/auth/me').then((res) => res.data))
 
   if (isLoading) {
     return (
@@ -55,7 +55,7 @@ export default function ProfilePage() {
           {/* Username */}
           <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-100">
             <div className="flex items-center space-x-2 mb-2">
-              <User className="w-5 h-5 text-purple-600" />
+              <UserIcon className="w-5 h-5 text-purple-600" />
               <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Username</span>
             </div>
             <p className="text-lg font-semibold text-slate-900">{user.username}</p>

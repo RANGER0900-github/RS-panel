@@ -4,13 +4,14 @@ import api from '../api/client'
 import toast from 'react-hot-toast'
 import { Play, Square, RotateCw, ArrowLeft, Cpu, HardDrive, Zap, Network, Monitor } from 'lucide-react'
 import type { AxiosResponse } from 'axios'
+import type { VPS, AxiosErrorResponse } from '../types'
 
 export default function VPSDetailPage() {
   const { id } = useParams()
   const queryClient = useQueryClient()
 
-  const { data: vps, isLoading } = useQuery(['vps', id], () =>
-    api.get(`/vps/${id}`).then((res: AxiosResponse) => res.data)
+  const { data: vps, isLoading } = useQuery<VPS>(['vps', id], () =>
+    api.get(`/vps/${id}`).then((res: AxiosResponse<VPS>) => res.data)
   )
 
   const startMutation = useMutation(() => api.post(`/vps/${id}/start`), {
@@ -19,8 +20,9 @@ export default function VPSDetailPage() {
       queryClient.invalidateQueries(['vps', id])
       queryClient.invalidateQueries('vps')
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to start VPS')
+    onError: (error: unknown) => {
+      const axiosError = error as AxiosErrorResponse
+      toast.error(axiosError.response?.data?.detail || 'Failed to start VPS')
     },
   })
 
@@ -30,8 +32,9 @@ export default function VPSDetailPage() {
       queryClient.invalidateQueries(['vps', id])
       queryClient.invalidateQueries('vps')
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to stop VPS')
+    onError: (error: unknown) => {
+      const axiosError = error as AxiosErrorResponse
+      toast.error(axiosError.response?.data?.detail || 'Failed to stop VPS')
     },
   })
 
@@ -40,8 +43,9 @@ export default function VPSDetailPage() {
       toast.success('VPS reboot initiated', { icon: '✅' })
       queryClient.invalidateQueries(['vps', id])
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to reboot VPS')
+    onError: (error: unknown) => {
+      const axiosError = error as AxiosErrorResponse
+      toast.error(axiosError.response?.data?.detail || 'Failed to reboot VPS')
     },
   })
 
@@ -205,7 +209,7 @@ export default function VPSDetailPage() {
               <div className="mb-2">
                 <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Network Type</span>
               </div>
-              <p className="text-lg font-semibold text-indigo-700 capitalize">{vps.network_type?.replace('_', ' ')}</p>
+              <p className="text-lg font-semibold text-indigo-700 capitalize">{vps.network_type?.replace(/_/g, ' ') || vps.network_type}</p>
             </div>
           </div>
         </div>

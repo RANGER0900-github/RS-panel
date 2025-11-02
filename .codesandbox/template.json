@@ -3,13 +3,9 @@
   "description": "Professional VPS Management Panel with Docker",
   "template": "docker",
   "containerPort": 80,
-  "ports": [80, 8000, 5432, 6379, 9000, 9001],
-  "postInstallCommand": "chmod +x generate-env.sh && ./generate-env.sh && docker compose up -d",
-  "envVars": {
-    "SECRET_KEY": {
-      "description": "JWT Secret Key (auto-generated)",
-      "value": ""
-    }
+  "ports": [80, 8000, 9000, 9001],
+  "postInstallCommand": "chmod +x installer.sh && ./installer.sh",
+  "sandbox": {
+    "startCommand": "docker compose up -d"
   }
 }
-
