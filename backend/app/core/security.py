@@ -8,7 +8,12 @@ from passlib.context import CryptContext
 import pyotp
 from app.core.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Explicitly allow bcrypt to truncate passwords >72 bytes instead of raising
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto",
+    bcrypt__truncate_error=False,
+)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
