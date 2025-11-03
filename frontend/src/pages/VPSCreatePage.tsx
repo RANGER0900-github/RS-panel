@@ -172,7 +172,12 @@ export default function VPSCreatePage() {
             <select
               className="input"
               value={formData.network_type}
-              onChange={(e) => setFormData({ ...formData, network_type: e.target.value })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  network_type: e.target.value as 'public_ipv4' | 'private_only',
+                })
+              }
             >
               <option value="public_ipv4">Public IPv4</option>
               <option value="private_only">Private Only</option>
