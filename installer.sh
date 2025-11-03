@@ -296,6 +296,7 @@ initialize_database() {
     
     log_error "Failed to initialize database after $MAX_RETRIES attempts"
     log_info "You can manually initialize later with: $COMPOSE_CMD exec backend python init_db.py"
+    log_info "Exact command: $COMPOSE_CMD exec -T backend python init_db.py"
 }
 
 # Setup firewall (Ubuntu only)
@@ -315,7 +316,7 @@ setup_firewall() {
     
     # Allow SSH first
     $SUDO ufw allow 22/tcp comment 'SSH'
-    $SUDO ufw allow 80/tcp comment 'HTTP'
+    $SUDO ufw allow 8080/tcp comment 'HTTP (frontend)'
     $SUDO ufw allow 443/tcp comment 'HTTPS'
     
     # Enable firewall
@@ -348,7 +349,7 @@ print_summary() {
         SERVER_IP=$(hostname -I | awk '{print $1}' 2>/dev/null || echo "your-server-ip")
         
         log_info "Installation Summary:"
-        echo "  • Frontend: http://${SERVER_IP}"
+        echo "  • Frontend: http://${SERVER_IP}:8080"
         echo "  • Backend API: http://${SERVER_IP}:8000"
         echo "  • API Docs: http://${SERVER_IP}:8000/api/docs"
         echo "  • MinIO Console: http://${SERVER_IP}:9001"
