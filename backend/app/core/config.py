@@ -16,9 +16,10 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
     # Database
+    # Prefer env-provided DB, otherwise default to local SQLite for non-Docker setups
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
-        "postgresql://vpspanel:vpspanel@postgres:5432/vpspanel"
+        "sqlite:///./app.db"
     )
     
     # Redis

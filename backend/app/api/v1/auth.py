@@ -16,6 +16,9 @@ from app.core.security import (
     verify_2fa_token,
 )
 from app.core.dependencies import get_current_user
+from app.core.rate_limit import should_throttle, record_failure, reset_counter
+from app.core.audit import record_audit
+from app.models.audit_log import AuditAction, AuditResource
 from app.models.user import User, UserRole
 
 router = APIRouter()
@@ -66,15 +69,29 @@ async def login(
     client_request: Request = None
 ):
     """Login and get JWT tokens"""
+    client_ip = client_request.client.host if client_request and client_request.client else None
+    user_agent = client_request.headers.get("user-agent") if client_request else None
+
+    # Simple IP throttling on failures
+    if client_ip and should_throttle(client_ip):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed attempts. Please try again later."
+        )
+
     user = db.query(User).filter(User.email == request.email).first()
     
     if not user or not verify_password(request.password, user.hashed_password):
+        if client_ip:
+            record_failure(client_ip)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password"
         )
     
     if not user.is_active:
+        if client_ip:
+            record_failure(client_ip)
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is disabled"
@@ -83,11 +100,15 @@ async def login(
     # 2FA verification
     if user.is_2fa_enabled:
         if not request.totp_code:
+            if client_ip:
+                record_failure(client_ip)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="2FA code required"
             )
         if not verify_2fa_token(user.totp_secret, request.totp_code):
+            if client_ip:
+                record_failure(client_ip)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid 2FA code"
@@ -101,6 +122,26 @@ async def login(
     # Create tokens
     access_token = create_access_token(data={"sub": user.id, "role": user.role.value})
     refresh_token = create_refresh_token(data={"sub": user.id})
+
+    # Reset throttle counter on success
+    if client_ip:
+        reset_counter(client_ip)
+
+    # Audit
+    try:
+        record_audit(
+            db,
+            user_id=user.id,
+            action=AuditAction.LOGIN,
+            resource_type=AuditResource.USER,
+            resource_id=user.id,
+            resource_uuid=user.uuid,
+            ip_address=client_ip,
+            user_agent=user_agent,
+            details={"success": True},
+        )
+    except Exception:
+        pass
     
     return TokenResponse(
         access_token=access_token,

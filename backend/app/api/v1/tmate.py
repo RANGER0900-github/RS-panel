@@ -10,6 +10,8 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.models.vps import VPS, NetworkType
+from app.core.audit import record_audit
+from app.models.audit_log import AuditAction, AuditResource
 
 router = APIRouter()
 
@@ -55,17 +57,32 @@ async def create_tmate_session(
     # 3. Get the connection URL
     # 4. Store session metadata in Redis with TTL
     
-    # Mock response for now
+    # Mock response for now (ensure clear and actionable)
     session_id = f"tmate-{vps.id}-{datetime.utcnow().timestamp()}"
     expires_at = datetime.utcnow() + timedelta(minutes=ttl_minutes)
     
     # Example tmate URL format
     connect_url = f"ssh://session@{session_id}.tmate.io"
     
-    return TmateSessionResponse(
+    response = TmateSessionResponse(
         session_id=session_id,
         connect_url=connect_url,
         expires_at=expires_at,
         ttl_seconds=ttl_minutes * 60
     )
+    # Audit
+    try:
+        record_audit(
+            db,
+            user_id=current_user.id,
+            action=AuditAction.CREATE,
+            resource_type=AuditResource.VPS,
+            resource_id=vps.id,
+            resource_uuid=vps.uuid,
+            details={"tmate_session_id": session_id},
+        )
+    except Exception:
+        pass
+
+    return response
 

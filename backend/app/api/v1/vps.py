@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, get_current_admin
 from app.models.vps import VPS, VPSStatus, NetworkType, ExpirationAction
+from app.core.audit import record_audit
+from app.models.audit_log import AuditAction, AuditResource
 from app.models.user import User, UserRole
 from app.models.image import OSImage
 
@@ -146,7 +148,35 @@ async def create_vps(
     db.add(vps)
     db.commit()
     db.refresh(vps)
-    
+
+    # Simulate provisioning so the UI can proceed (until real worker is plugged in)
+    try:
+        if vps.network_type == NetworkType.PUBLIC_IPV4:
+            # Assign a placeholder public IPv4 (TEST-NET-3 range)
+            vps.public_ipv4 = f"203.0.113.{(vps.id % 250) + 1}"
+        else:
+            # Private-only IP (RFC1918)
+            vps.private_ip = f"10.0.0.{(vps.id % 250) + 10}"
+        vps.status = VPSStatus.RUNNING if vps.start_on_create else VPSStatus.STOPPED
+        db.commit()
+        db.refresh(vps)
+    except Exception:
+        # Keep initial state if anything goes wrong
+        pass
+    # Audit
+    try:
+        record_audit(
+            db,
+            user_id=current_user.id,
+            action=AuditAction.CREATE,
+            resource_type=AuditResource.VPS,
+            resource_id=vps.id,
+            resource_uuid=vps.uuid,
+            details={"start_on_create": vps.start_on_create},
+        )
+    except Exception:
+        pass
+
     # TODO: Trigger provisioning task via Celery
     
     return vps
@@ -219,7 +249,19 @@ async def start_vps(
     
     vps.status = VPSStatus.RUNNING
     db.commit()
-    
+    # Audit
+    try:
+        record_audit(
+            db,
+            user_id=current_user.id,
+            action=AuditAction.START,
+            resource_type=AuditResource.VPS,
+            resource_id=vps.id,
+            resource_uuid=vps.uuid,
+        )
+    except Exception:
+        pass
+
     # TODO: Trigger start task via Celery
     
     return {"message": "VPS start initiated", "status": vps.status.value}
@@ -245,7 +287,19 @@ async def stop_vps(
     
     vps.status = VPSStatus.STOPPED
     db.commit()
-    
+    # Audit
+    try:
+        record_audit(
+            db,
+            user_id=current_user.id,
+            action=AuditAction.STOP,
+            resource_type=AuditResource.VPS,
+            resource_id=vps.id,
+            resource_uuid=vps.uuid,
+        )
+    except Exception:
+        pass
+
     # TODO: Trigger stop task via Celery
     
     return {"message": "VPS stop initiated", "status": vps.status.value}
@@ -270,7 +324,19 @@ async def reboot_vps(
         raise HTTPException(status_code=400, detail="VPS must be running to reboot")
     
     # TODO: Trigger reboot task via Celery
-    
+    # Audit
+    try:
+        record_audit(
+            db,
+            user_id=current_user.id,
+            action=AuditAction.REBOOT,
+            resource_type=AuditResource.VPS,
+            resource_id=vps.id,
+            resource_uuid=vps.uuid,
+        )
+    except Exception:
+        pass
+
     return {"message": "VPS reboot initiated"}
 
 
@@ -288,7 +354,19 @@ async def delete_vps(
     
     vps.status = VPSStatus.DELETING
     db.commit()
-    
+    # Audit
+    try:
+        record_audit(
+            db,
+            user_id=current_user.id,
+            action=AuditAction.DELETE,
+            resource_type=AuditResource.VPS,
+            resource_id=vps.id,
+            resource_uuid=vps.uuid,
+        )
+    except Exception:
+        pass
+
     # TODO: Trigger delete task via Celery
     
     return None

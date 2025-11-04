@@ -407,68 +407,172 @@ install_codesandbox() {
     log_info "Note: Ports are automatically exposed by CodeSandbox"
 }
 
+# Add choice for Local (non-Docker) installation
+select_installation_type() {
+    echo ""
+    log_info "Select installation type:"
+    echo "  1) Ubuntu VPS (Docker)"
+    echo "  2) CodeSandbox (Docker)"
+    echo "  3) Local (non-Docker)"
+    echo ""
+    read -p "Enter your choice (1/2/3): " -n 1 -r
+    echo
+    case "$REPLY" in
+        1) SYSTEM_TYPE="ubuntu" ;;
+        2) SYSTEM_TYPE="codesandbox" ;;
+        3) SYSTEM_TYPE="local" ;;
+        *) log_error "Invalid choice"; exit 1 ;;
+    esac
+}
+
+# Install local dependencies (non-Docker)
+install_local_dependencies() {
+    log_info "Installing local dependencies (Python, Node, PostgreSQL)..."
+    if command -v apt-get >/dev/null 2>&1; then
+        $SUDO apt-get update -qq
+        $SUDO apt-get install -y python3-venv python3-pip python3-dev build-essential curl git
+        # Node (optional) - if unavailable, user can run frontend separately
+        if ! command -v node >/dev/null 2>&1; then
+            log_warning "Node.js not found. Frontend dev server may not run."
+        fi
+        # PostgreSQL (optional)
+        if ! command -v psql >/dev/null 2>&1; then
+            log_info "Installing PostgreSQL (optional)..."
+            $SUDO apt-get install -y postgresql postgresql-contrib
+        fi
+    else
+        log_warning "Unknown package manager; please ensure Python3 and pip are installed."
+    fi
+}
+
+# Configure PostgreSQL and create database/user (idempotent)
+configure_local_postgres() {
+    if ! command -v psql >/dev/null 2>&1; then
+        log_warning "psql not found; will fallback to SQLite."
+        return 1
+    fi
+    log_info "Configuring local PostgreSQL..."
+    DB_NAME="vpspanel"
+    DB_USER="vpspanel"
+    DB_PASS="vpspanel"
+
+    $SUDO -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname = '${DB_NAME}'" | grep -q 1 || \
+        $SUDO -u postgres createdb ${DB_NAME}
+
+    $SUDO -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname='${DB_USER}'" | grep -q 1 || \
+        $SUDO -u postgres psql -c "CREATE USER ${DB_USER} WITH PASSWORD '${DB_PASS}';"
+
+    $SUDO -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};" >/dev/null 2>&1 || true
+
+    echo "postgresql://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}"
+    return 0
+}
+
+# Generate .env for local mode
+generate_local_env() {
+    log_info "Generating .env for local mode..."
+    local DB_URL="$1"
+    cat > .env <<EOF
+SECRET_KEY=$(openssl rand -hex 32 2>/dev/null || echo "dev-secret")
+DEBUG=true
+DATABASE_URL=${DB_URL}
+REDIS_URL=redis://localhost:6379/0
+S3_ENDPOINT=http://localhost:9000
+S3_ACCESS_KEY=minioadmin
+S3_SECRET_KEY=minioadmin
+S3_BUCKET=vps-panel
+S3_REGION=us-east-1
+USE_S3=false
+LIBVIRT_URI=qemu:///system
+CELERY_BROKER_URL=redis://localhost:6379/1
+CELERY_RESULT_BACKEND=redis://localhost:6379/2
+TMATE_HOST=localhost
+TMATE_PORT=22
+TMATE_BIN_PATH=/usr/bin/tmate
+EOF
+    log_success ".env created for local mode"
+}
+
+# Install backend locally and initialize DB
+install_backend_local() {
+    log_info "Setting up backend (local)..."
+    cd backend
+    python3 -m venv .venv
+    source .venv/bin/activate
+    pip install --upgrade pip
+    pip install -r requirements.txt
+    # Run app once to auto-create tables and seed admin/fixtures
+    uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload &
+    BACKEND_PID=$!
+    sleep 5
+    kill $BACKEND_PID 2>/dev/null || true
+    deactivate
+    cd - >/dev/null
+    log_success "Backend ready (local)"
+}
+
+# Optional: run backend and frontend dev servers
+run_local_servers() {
+    log_info "Starting backend dev server..."
+    (cd backend && source .venv/bin/activate && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload) &
+    sleep 2
+    if [ -d frontend ]; then
+        log_info "Starting frontend dev server..."
+        if command -v npm >/dev/null 2>&1; then
+            (cd frontend && npm install && npm run dev) &
+        else
+            log_warning "npm not found; skipping frontend dev server."
+        fi
+    fi
+    log_info "Local servers starting..."
+    SERVER_IP=$(hostname -I | awk '{print $1}' 2>/dev/null || echo "127.0.0.1")
+    echo "  • Frontend: http://${SERVER_IP}:3000"
+    echo "  • Backend:  http://${SERVER_IP}:8000"
+    echo "  • API Docs: http://${SERVER_IP}:8000/api/docs"
+}
+
+install_local() {
+    check_compatibility
+    install_local_dependencies
+    DB_URL_SQLITE="sqlite:///./backend/app.db"
+    DB_URL_PG=$(configure_local_postgres) || true
+    FINAL_DB_URL=${DB_URL_PG:-$DB_URL_SQLITE}
+    generate_local_env "$FINAL_DB_URL"
+    install_backend_local
+    run_local_servers
+}
+
 # Main function
 main() {
     print_banner
     check_root
     detect_system
-    
-    # If system type is unknown, ask user
     if [ "$SYSTEM_TYPE" == "unknown" ]; then
-        echo ""
-        log_info "Please select your installation type:"
-        echo "  1) Ubuntu VPS (Normal Ubuntu/Debian server)"
-        echo "  2) CodeSandbox (Cloud development environment)"
-        echo ""
-        read -p "Enter your choice (1 or 2): " -n 1 -r
-        echo
-        
-        if [[ $REPLY == "1" ]]; then
-            SYSTEM_TYPE="ubuntu"
-        elif [[ $REPLY == "2" ]]; then
-            SYSTEM_TYPE="codesandbox"
-        else
-            log_error "Invalid choice. Exiting."
-            exit 1
-        fi
+        select_installation_type
     else
-        # Auto-detected, but ask for confirmation
         echo ""
         if [ "$SYSTEM_TYPE" == "ubuntu" ]; then
             log_info "Detected: Ubuntu VPS installation"
-        else
+        elif [ "$SYSTEM_TYPE" == "codesandbox" ]; then
             log_info "Detected: CodeSandbox installation"
+        else
+            log_info "Detected: Local (non-Docker) installation"
         fi
         read -p "Is this correct? (Y/n): " -n 1 -r
         echo
-        
         if [[ $REPLY =~ ^[Nn]$ ]]; then
-            echo ""
-            log_info "Please select your installation type:"
-            echo "  1) Ubuntu VPS"
-            echo "  2) CodeSandbox"
-            echo ""
-            read -p "Enter your choice (1 or 2): " -n 1 -r
-            echo
-            
-            if [[ $REPLY == "1" ]]; then
-                SYSTEM_TYPE="ubuntu"
-            elif [[ $REPLY == "2" ]]; then
-                SYSTEM_TYPE="codesandbox"
-            else
-                log_error "Invalid choice. Exiting."
-                exit 1
-            fi
+            select_installation_type
         fi
     fi
-    
-    # Run appropriate installation
+
     if [ "$SYSTEM_TYPE" == "ubuntu" ]; then
         install_ubuntu
-    else
+    elif [ "$SYSTEM_TYPE" == "codesandbox" ]; then
         install_codesandbox
+    else
+        install_local
     fi
-    
+
     print_summary
 }
 
