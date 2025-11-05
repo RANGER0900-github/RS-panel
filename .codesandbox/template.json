@@ -1,0 +1,11 @@
+{
+  "title": "MS VPS Panel",
+  "description": "Professional VPS Management Panel with Docker",
+  "template": "docker",
+  "containerPort": 80,
+  "ports": [80, 8000, 9000, 9001],
+  "postInstallCommand": "chmod +x installer.sh && ./installer.sh",
+  "sandbox": {
+    "startCommand": "docker compose up -d"
+  }
+}
